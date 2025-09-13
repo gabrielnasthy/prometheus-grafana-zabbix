@@ -1,0 +1,115 @@
+version: "3.8"
+
+services:
+  # Nginx Proxy Reverso (Ponto de Entrada)
+  reverse-proxy:
+    image: docker.io/library/nginx:latest
+    container_name: reverse-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - zabbix-web
+      - grafana
+
+  # --- NOVOS SERVIÇOS PROMETHEUS ---
+  prometheus:
+    image: docker.io/prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9091:9090" # Porta da interface web do Prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  node-exporter:
+    image: docker.io/prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+  # --- FIM DOS NOVOS SERVIÇOS ---
+
+  zabbix-mysql:
+    image: docker.io/library/mysql:8.0
+    container_name: zabbix-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_bin
+      - --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_ROOT_PASSWORD: Sup3R0312@
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: Sup3R0312@
+    volumes:
+      - zabbix-mysql-data:/var/lib/mysql
+
+  zabbix-server:
+    image: docker.io/zabbix/zabbix-server-mysql:7.4-alpine-latest
+    container_name: zabbix-server
+    restart: unless-stopped
+    environment:
+      DB_SERVER_HOST: zabbix-mysql
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: Sup3R0312@
+    depends_on:
+      - zabbix-mysql
+    ports:
+      - "10051:10051"
+
+  zabbix-web:
+    image: docker.io/zabbix/zabbix-web-nginx-mysql:7.4-alpine-latest
+    container_name: zabbix-web
+    restart: unless-stopped
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: zabbix-mysql
+      MYSQL_DATABASE: zabbix
+      MYSQL_USER: zabbix
+      MYSQL_PASSWORD: Sup3R0312@
+      PHP_TZ: America/Sao_Paulo
+      ZBX_SERVER_NAME: archlinux/zabbix
+    depends_on:
+      - zabbix-server
+      - zabbix-mysql
+
+  zabbix-agent2:
+    image: docker.io/zabbix/zabbix-agent2:7.4-alpine-latest
+    container_name: zabbix-agent2
+    restart: unless-stopped
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      HOSTNAME: Zabbix server
+    depends_on:
+      - zabbix-server
+
+  grafana:
+    image: docker.io/grafana/grafana-oss:11.1.0
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_INSTALL_PLUGINS: alexanderzobnin-zabbix-app
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana"
+    depends_on:
+      - zabbix-server
+
+volumes:
+  zabbix-mysql-data:
+  grafana-data:
+  prometheus-data: # <-- Novo volume para os dados do Prometheus

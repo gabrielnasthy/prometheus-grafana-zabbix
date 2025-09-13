@@ -1,0 +1,15 @@
+# Configuração global
+global:
+  scrape_interval: 15s # Define que a coleta de métricas será feita a cada 15 segundos
+
+# Lista de alvos que o Prometheus deve monitorar
+scrape_configs:
+  # O primeiro alvo é o próprio Prometheus, para monitorar sua própria saúde
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # O segundo alvo é o Node Exporter, que nos dará as métricas do servidor
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['node-exporter:9100'] # Usa o nome do serviço do contêiner
