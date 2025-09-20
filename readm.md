@@ -82,10 +82,10 @@ Crie um arquivo `.env` para armazenar as senhas e outras informações sensívei
 # Arquivo de variáveis de ambiente para o podman-compose
 
 # Senha para o usuário 'root' do MySQL
-MYSQL_ROOT_PASSWORD=Sup3R0312@
+MYSQL_ROOT_PASSWORD=suasenha
 
 # Senha para o usuário 'zabbix' do MySQL
-MYSQL_PASSWORD=Sup3R0312@
+MYSQL_PASSWORD=suasenha
 ```
 
 ### Passo 3: Arquivos de Configuração
