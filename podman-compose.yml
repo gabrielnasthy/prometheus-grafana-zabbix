@@ -1,7 +1,6 @@
 version: "3.8"
 
 services:
-  # Nginx Proxy Reverso (Ponto de Entrada)
   reverse-proxy:
     image: docker.io/library/nginx:latest
     container_name: reverse-proxy
@@ -14,18 +13,16 @@ services:
       - zabbix-web
       - grafana
 
-  # --- NOVOS SERVIÇOS PROMETHEUS ---
   prometheus:
     image: docker.io/prom/prometheus:latest
     container_name: prometheus
     restart: unless-stopped
-    ports:
-      - "9091:9090" # Porta da interface web do Prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.external-url=http://archlinux/prometheus'
 
   node-exporter:
     image: docker.io/prom/node-exporter:latest
@@ -39,21 +36,22 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
-  # --- FIM DOS NOVOS SERVIÇOS ---
 
   zabbix-mysql:
     image: docker.io/library/mysql:8.0
     container_name: zabbix-mysql
     restart: unless-stopped
+    expose:
+      - "3306"
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_bin
       - --log-bin-trust-function-creators=1
     environment:
-      MYSQL_ROOT_PASSWORD: Sup3R0312@
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: zabbix
       MYSQL_USER: zabbix
-      MYSQL_PASSWORD: Sup3R0312@
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - zabbix-mysql-data:/var/lib/mysql
 
@@ -65,7 +63,7 @@ services:
       DB_SERVER_HOST: zabbix-mysql
       MYSQL_DATABASE: zabbix
       MYSQL_USER: zabbix
-      MYSQL_PASSWORD: Sup3R0312@
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     depends_on:
       - zabbix-mysql
     ports:
@@ -80,7 +78,7 @@ services:
       DB_SERVER_HOST: zabbix-mysql
       MYSQL_DATABASE: zabbix
       MYSQL_USER: zabbix
-      MYSQL_PASSWORD: Sup3R0312@
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       PHP_TZ: America/Sao_Paulo
       ZBX_SERVER_NAME: archlinux/zabbix
     depends_on:
@@ -112,4 +110,4 @@ services:
 volumes:
   zabbix-mysql-data:
   grafana-data:
-  prometheus-data: # <-- Novo volume para os dados do Prometheus
+  prometheus-data:
