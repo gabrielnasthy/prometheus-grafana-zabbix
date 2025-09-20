@@ -28,8 +28,8 @@ A solução implementada é uma plataforma de monitoramento completa, segura e a
 ### Passos
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/gabrielnasthy/prometheus-grafana-zabbix.git](https://github.com/gabrielnasthy/prometheus-grafana-zabbix.git)
-    cd prometheus-grafana-zabbix
+    git clone [https://github.com/gabrielnasthy/stack-monitoramento-podman.git](https://github.com/gabrielnasthy/stack-monitoramento-podman.git)
+    cd stack-monitoramento-podman
     ```
 
 2.  **Crie e configure o arquivo de senhas:**
@@ -84,4 +84,3 @@ A implementação deste projeto envolveu a resolução de múltiplos desafios t�
 
 ---
 Projeto desenvolvido por **Gabriel** ([@gabrielnasthy](https://github.com/gabrielnasthy)).
- 
