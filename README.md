@@ -1,4 +1,4 @@
-# Stack de Monitoramento Completo com Zabbix, Grafana e Prometheus em Contêineres Rootless
+ # Stack de Monitoramento Completo com Zabbix, Grafana e Prometheus em Contêineres Rootless
 
 ![Zabbix](https://img.shields.io/badge/Zabbix-7.0_LTS-D40000?style=for-the-badge&logo=zabbix) ![Grafana](https://img.shields.io/badge/Grafana-11.1-F46800?style=for-the-badge&logo=grafana) ![Prometheus](https://img.shields.io/badge/Prometheus-v2-E6522C?style=for-the-badge&logo=prometheus) ![Podman](https://img.shields.io/badge/Podman-Rootless-8A2BE2?style=for-the-badge&logo=podman)
 
@@ -35,7 +35,7 @@ A solução implementada é uma plataforma de monitoramento completa, segura e a
 2.  **Crie e configure o arquivo de senhas:**
     Copie o arquivo de exemplo `.env.example` para um novo arquivo chamado `.env`.
     ```bash
-    cp .env.example .env
+    nano .env
     ```
     Agora, **edite o arquivo `.env`** com um editor de texto (ex: `nano .env`) e substitua os valores `coloque_uma_senha_forte_aqui` por senhas seguras de sua escolha.
 
@@ -53,7 +53,7 @@ Aguarde alguns minutos para a inicialização. Seus serviços estarão disponív
 ## 🛠️ Detalhes da Configuração
 
 ### Arquivos
-* **`.env.example`**: Modelo para as variáveis de ambiente (senhas).
+* **`.env`**: Modelo para as variáveis de ambiente (senhas).
 * **`podman-compose.yml`**: Define todos os 8 serviços, volumes e redes.
 * **`nginx.conf`**: Configuração do Proxy Reverso para acesso unificado via porta 80.
 * **`prometheus.yml`**: Define os alvos de coleta de métricas para o Prometheus.
