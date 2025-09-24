@@ -16,7 +16,7 @@ A solução implementada é uma plataforma de monitoramento completa, segura e a
 ### Passos
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/gabrielnasthy/stack-monitoramento-podman.git](https://github.com/gabrielnasthy/stack-monitoramento-podman.git)
+    git clone https://github.com/gabrielnasthy/stack-monitoramento-podman.git
     cd stack-monitoramento-podman
     ```
 
