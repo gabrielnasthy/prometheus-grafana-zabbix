@@ -11,6 +11,7 @@ services:
       - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
     environment:
       - ZABBIX_HOSTNAME=${ZABBIX_HOSTNAME}
+      - TZ=${TZ} # Adiciona fuso horário aos logs do Nginx
     depends_on:
       zabbix-web:
         condition: service_healthy
@@ -61,6 +62,7 @@ services:
       MYSQL_DATABASE: zabbix
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: ${TZ} # Adiciona fuso horário aos logs do MySQL
     volumes:
       - zabbix-mysql-data:/var/lib/mysql
 
@@ -73,6 +75,7 @@ services:
       MYSQL_DATABASE: zabbix
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: ${TZ} # Adiciona fuso horário ao Zabbix Server
     depends_on:
       zabbix-mysql:
         condition: service_healthy
@@ -94,7 +97,8 @@ services:
       MYSQL_DATABASE: zabbix
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      PHP_TZ: America/Sao_Paulo
+      PHP_TZ: ${TZ} # <-- MUDANÇA AQUI
+      ZBX_SERVER_NAME: ${ZABBIX_HOSTNAME}/zabbix
     depends_on:
       zabbix-server:
         condition: service_started
@@ -110,6 +114,7 @@ services:
     environment:
       ZBX_SERVER_HOST: zabbix-server
       HOSTNAME: Zabbix server
+      TZ: ${TZ} # Adiciona fuso horário ao agente
     depends_on:
       zabbix-server:
         condition: service_started
@@ -123,6 +128,7 @@ services:
     environment:
       GF_INSTALL_PLUGINS: alexanderzobnin-zabbix-app
       GF_SERVER_ROOT_URL: "http://${ZABBIX_HOSTNAME}/grafana"
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: ${TZ} # <-- MUDANÇA AQUI
     depends_on:
       zabbix-server:
         condition: service_started
