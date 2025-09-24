@@ -1,10 +1,12 @@
 server {
     listen 80;
-    # Esta variável será substituída automaticamente na inicialização
     server_name ${ZABBIX_HOSTNAME};
 
+    # --- SEÇÃO ZABBIX COM NOVA ABORDAGEM ---
     location /zabbix/ {
-        # VERSÃO CORRIGIDA, SEM A BARRA NO FINAL
+        # Remove /zabbix/ do início da URL antes de passar para o Zabbix
+        rewrite ^/zabbix/(.*)$ /$1 break;
+        
         proxy_pass http://zabbix-web:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
