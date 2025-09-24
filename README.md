@@ -77,6 +77,51 @@ Para um ambiente de produção, aplique estas configurações no servidor que ho
     systemctl --user enable podman-restart.service
     ```
 
+
+graph TD
+    subgraph "Usuário"
+        User[("Usuário / Admin")]
+    end
+
+    subgraph "Servidor Host (Arch Linux)"
+        Proxy[Reverse Proxy Nginx <br> Porta 80]
+
+        subgraph "Stack de Monitoramento (Contêineres Podman)"
+            ZabbixWeb[Zabbix Web UI]
+            Grafana[Grafana UI]
+            Prometheus[Prometheus Server]
+            ZabbixServer[Zabbix Server]
+            ZabbixDB[(Zabbix MySQL DB)]
+            NodeExporter[Node Exporter]
+        end
+    end
+
+    subgraph "Máquinas Remotas Monitoradas"
+        RemoteAgent[("Agente Zabbix <br> (Linux / Windows)")]
+    end
+
+    %% Conexões do Usuário
+    User -- "http://.../zabbix" --> Proxy
+    User -- "http://.../grafana" --> Proxy
+    User -- "http://.../prometheus" --> Proxy
+
+    %% Roteamento do Proxy Reverso
+    Proxy --> ZabbixWeb
+    Proxy --> Grafana
+    Proxy --> Prometheus
+
+    %% Conexões Internas do Stack
+    ZabbixWeb --- ZabbixServer
+    ZabbixWeb --- ZabbixDB
+    ZabbixServer --- ZabbixDB
+    Grafana -- "Data Source" --> ZabbixWeb
+    Grafana -- "Data Source" --> Prometheus
+    Prometheus -- "Coleta (Scrape)" --> NodeExporter
+
+    %% Conexões de Monitoramento
+    ZabbixServer <== "Porta 10051" ==> RemoteAgent
+
+
 ## 🎓 Jornada de Troubleshooting e Aprendizados
 A implementação deste projeto envolveu a resolução de múltiplos desafios técnicos, servindo como grandes pontos de aprendizado:
 * **Banco de Dados:** Corrigido erro de `SUPER privilege` e problemas de `collation` no MySQL.
