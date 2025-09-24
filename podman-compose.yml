@@ -10,8 +10,10 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - zabbix-web
-      - grafana
+      zabbix-web:
+        condition: service_healthy
+      grafana:
+        condition: service_started
 
   prometheus:
     image: docker.io/prom/prometheus:latest
@@ -22,7 +24,7 @@ services:
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--web.external-url=http://archlinux/prometheus'
+      - '--web.external-url=http://${ZABBIX_HOSTNAME}/prometheus'
 
   node-exporter:
     image: docker.io/prom/node-exporter:latest
@@ -43,6 +45,11 @@ services:
     restart: unless-stopped
     expose:
       - "3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_bin
@@ -65,7 +72,8 @@ services:
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     depends_on:
-      - zabbix-mysql
+      zabbix-mysql:
+        condition: service_healthy
     ports:
       - "10051:10051"
 
@@ -73,6 +81,11 @@ services:
     image: docker.io/zabbix/zabbix-web-nginx-mysql:7.4-alpine-latest
     container_name: zabbix-web
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       ZBX_SERVER_HOST: zabbix-server
       DB_SERVER_HOST: zabbix-mysql
@@ -80,10 +93,14 @@ services:
       MYSQL_USER: zabbix
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       PHP_TZ: America/Sao_Paulo
-      ZBX_SERVER_NAME: archlinux/zabbix
+      ZBX_SERVER_NAME: ${ZABBIX_HOSTNAME}/zabbix
     depends_on:
-      - zabbix-server
-      - zabbix-mysql
+      zabbix-server:
+        condition: service_started
+      zabbix-mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
 
   zabbix-agent2:
     image: docker.io/zabbix/zabbix-agent2:7.4-alpine-latest
@@ -93,7 +110,8 @@ services:
       ZBX_SERVER_HOST: zabbix-server
       HOSTNAME: Zabbix server
     depends_on:
-      - zabbix-server
+      zabbix-server:
+        condition: service_started
 
   grafana:
     image: docker.io/grafana/grafana-oss:11.1.0
@@ -103,9 +121,10 @@ services:
       - grafana-data:/var/lib/grafana
     environment:
       GF_INSTALL_PLUGINS: alexanderzobnin-zabbix-app
-      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana"
+      GF_SERVER_ROOT_URL: "http://${ZABBIX_HOSTNAME}/grafana"
     depends_on:
-      - zabbix-server
+      zabbix-server:
+        condition: service_started
 
 volumes:
   zabbix-mysql-data:
