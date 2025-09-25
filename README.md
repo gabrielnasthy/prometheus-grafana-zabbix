@@ -1,4 +1,4 @@
-# Projeto Sentinela: Stack de Monitoramento com Podman
+2# Projeto Sentinela: Stack de Monitoramento com Podman
 
 ![Zabbix](https://img.shields.io/badge/Zabbix-7.0_LTS-D40000?style=for-the-badge&logo=zabbix) ![Grafana](https://img.shields.io/badge/Grafana-11.1-F46800?style=for-the-badge&logo=grafana) ![Prometheus](https://img.shields.io/badge/Prometheus-v2-E6522C?style=for-the-badge&logo=prometheus) ![Podman](https://img.shields.io/badge/Podman-Rootless-8A2BE2?style=for-the-badge&logo=podman) ![Nginx](https://img.shields.io/badge/NGINX-Proxy-269539?style=for-the-badge&logo=nginx) ![Shell Script](https://img.shields.io/badge/Shell-Script-black?style=for-the-badge&logo=gnu-bash) ![PowerShell](https://img.shields.io/badge/PowerShell-blue?style=for-the-badge&logo=powershell)
 
@@ -84,7 +84,7 @@ Esta seção deve ser executada no servidor que irá hospedar o stack de monitor
 
 #### 1.2 Clonar o Repositório
 ```bash
-git clone [https://github.com/gabrielnasthy/stack-monitoramento-podman.git](https://github.com/gabrielnasthy/stack-monitoramento-podman.git)
+git clone https://github.com/gabrielnasthy/stack-monitoramento-podman.git
 cd stack-monitoramento-podman
 ```
 
