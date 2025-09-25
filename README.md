@@ -3,9 +3,9 @@
 ![Zabbix](https://img.shields.io/badge/Zabbix-7.0_LTS-D40000?style=for-the-badge&logo=zabbix) ![Grafana](https://img.shields.io/badge/Grafana-11.1-F46800?style=for-the-badge&logo=grafana) ![Prometheus](https://img.shields.io/badge/Prometheus-v2-E6522C?style=for-the-badge&logo=prometheus) ![Podman](https://img.shields.io/badge/Podman-Rootless-8A2BE2?style=for-the-badge&logo=podman)
 
 ## 📖 Visão Geral do Projeto
-Este projeto nasceu de uma necessidade real: monitorar de forma proativa uma infraestrutura de 15 servidores de clientes, distribuídos em diferentes localidades, para prever e agir sobre falhas de hardware ou software antes que impactassem o negócio.
+Este projeto nasceu de uma necessidade real: monitorar de forma proativa uma infraestrutura de múltiplos servidores de clientes, distribuídos em diferentes localidades, para prever e agir sobre falhas antes que impactassem o negócio.
 
-A solução implementada é uma plataforma de monitoramento completa, segura e automatizada, construída do zero com as melhores ferramentas open-source. O ambiente é totalmente orquestrado com **Podman Compose** em modo **rootless**, garantindo maior segurança e seguindo as práticas modernas de DevOps.
+A solução implementada é uma plataforma de monitoramento completa, segura e automatizada, totalmente orquestrada com **Podman Compose** em modo **rootless**. O repositório contém todos os arquivos de configuração e scripts de implantação de agentes para colocar o ambiente em funcionamento de forma rápida e consistente.
 
 ## 🚀 Tecnologias Utilizadas
 * **Containerização:** Podman & Podman Compose (Rootless)
@@ -14,8 +14,7 @@ A solução implementada é uma plataforma de monitoramento completa, segura e a
 * **Visualização e Dashboards:** Grafana
 * **Banco de Dados:** MySQL 8.0
 * **Proxy Reverso:** Nginx
-* **Sistema Operacional (Servidor):** Arch Linux
-* **Agentes Monitorados:** Arch Linux, Fedora Kinoite (Imutável), Windows Server
+* **Scripts de Implantação:** Bash (Linux) e PowerShell (Windows)
 
 ---
 
@@ -32,103 +31,25 @@ A solução implementada é uma plataforma de monitoramento completa, segura e a
     cd stack-monitoramento-podman
     ```
 
-2.  **Crie e configure o arquivo de senhas e hostname:**
+2.  **Configure seu ambiente:**
     Copie o arquivo de exemplo `.env.example` para um novo arquivo chamado `.env`.
     ```bash
     cp .env.example .env
     ```
-    Agora, **edite o arquivo `.env`** com um editor de texto (ex: `nano .env`) e **substitua os valores** das senhas e do `ZABBIX_HOSTNAME` com suas informações.
+    Agora, **edite o arquivo `.env`** com um editor de texto (ex: `nano .env`) e **substitua os valores** das senhas e do `ZABBIX_HOSTNAME` com suas informações. Este é o único arquivo que você precisa configurar para o stack principal.
 
-3.  **Configure o Nginx:**
-    **Edite o arquivo `nginx.conf`** e troque a linha `server_name seu_servidor_aqui;` para usar o mesmo hostname que você colocou na variável `ZABBIX_HOSTNAME` do passo anterior.
+3.  **(Opcional) Configure o Servidor Host para Produção:**
+    Para que o stack inicie automaticamente com o servidor, aplique as configurações descritas na seção "Configuração Avançada do Servidor Host" abaixo.
 
-4.  **(Opcional) Configure o Servidor Host:**
-    Para funcionalidade completa (porta 80 e auto-start), aplique as configurações de host descritas na seção "Configuração Avançada do Servidor Host" abaixo.
-
-5.  **Inicie o stack:**
+4.  **Inicie o stack:**
     ```bash
     podman-compose up -d
     ```
 Aguarde alguns minutos para a inicialização. Seus serviços estarão disponíveis nos endereços como `http://SEU_HOSTNAME/zabbix`.
 
----
+## 🤖 Scripts de Implantação de Agentes
+Na pasta `scripts/`, você encontrará scripts para automatizar a instalação do Zabbix Agent e do Tailscale em novas máquinas:
+* `deploy_zabbix_linux.sh`: Para distribuições Linux (Debian, RHEL, Arch).
+* `deploy_zabbix_windows.ps1`: Para servidores Windows.
 
-## 🛠️ Detalhes da Configuração
-
-### Arquivos
-* **`.env.example`**: Modelo para as variáveis de ambiente (senhas).
-* **`podman-compose.yml`**: Define todos os 8 serviços, volumes e redes.
-* **`nginx.conf`**: Configuração do Proxy Reverso para acesso unificado via porta 80.
-* **`prometheus.yml`**: Define os alvos de coleta de métricas para o Prometheus.
-
-### Configuração Avançada do Servidor Host
-Para um ambiente de produção, aplique estas configurações no servidor que hospeda os contêineres.
-
-1.  **Permitir Portas Privilegiadas para Usuários Rootless:**
-    ```bash
-    echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/99-podman-ports.conf
-    sudo sysctl --system
-    ```
-
-2.  **Habilitar Inicialização Automática dos Contêineres no Boot:**
-    ```bash
-    # (Substitua 'seu_usuario' pelo seu nome de usuário)
-    sudo loginctl enable-linger seu_usuario
-    systemctl --user enable podman-restart.service
-    ```
-
-
-graph TD
-    subgraph "Usuário"
-        User[("Usuário / Admin")]
-    end
-
-    subgraph "Servidor Host (Arch Linux)"
-        Proxy[Reverse Proxy Nginx <br> Porta 80]
-
-        subgraph "Stack de Monitoramento (Contêineres Podman)"
-            ZabbixWeb[Zabbix Web UI]
-            Grafana[Grafana UI]
-            Prometheus[Prometheus Server]
-            ZabbixServer[Zabbix Server]
-            ZabbixDB[(Zabbix MySQL DB)]
-            NodeExporter[Node Exporter]
-        end
-    end
-
-    subgraph "Máquinas Remotas Monitoradas"
-        RemoteAgent[("Agente Zabbix <br> (Linux / Windows)")]
-    end
-
-    %% Conexões do Usuário
-    User -- "http://.../zabbix" --> Proxy
-    User -- "http://.../grafana" --> Proxy
-    User -- "http://.../prometheus" --> Proxy
-
-    %% Roteamento do Proxy Reverso
-    Proxy --> ZabbixWeb
-    Proxy --> Grafana
-    Proxy --> Prometheus
-
-    %% Conexões Internas do Stack
-    ZabbixWeb --- ZabbixServer
-    ZabbixWeb --- ZabbixDB
-    ZabbixServer --- ZabbixDB
-    Grafana -- "Data Source" --> ZabbixWeb
-    Grafana -- "Data Source" --> Prometheus
-    Prometheus -- "Coleta (Scrape)" --> NodeExporter
-
-    %% Conexões de Monitoramento
-    ZabbixServer <== "Porta 10051" ==> RemoteAgent
-
-
-## 🎓 Jornada de Troubleshooting e Aprendizados
-A implementação deste projeto envolveu a resolução de múltiplos desafios técnicos, servindo como grandes pontos de aprendizado:
-* **Banco de Dados:** Corrigido erro de `SUPER privilege` e problemas de `collation` no MySQL.
-* **Volumes Persistentes:** Solucionado o problema de "banco de dados corrompido" em reinicializações com `podman volume prune`.
-* **Contêineres Rootless:** Superado o desafio de expor portas privilegiadas (< 1024) por um usuário não-root com `sysctl`.
-* **Sistemas Imutáveis:** Realizada a instalação do Zabbix Agent no Fedora Kinoite utilizando `rpm-ostree`.
-* **Proxy Reverso:** Depurado o redirecionamento incorreto do Prometheus com a flag `web.external-url`.
-
----
-Projeto desenvolvido por **Gabriel** ([@gabrielnasthy](https://github.com/gabrielnasthy)).
+Edite a variável da chave de autenticação do Tailscale (`TAILSCALE_AUTH_KEY`) dentro do script desejado antes de executá-lo na máquina cliente.
