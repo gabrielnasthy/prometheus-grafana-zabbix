@@ -1,111 +1,74 @@
-#!/bin/bash
-
 # =============================================================================
-# Script de Implantação do Zabbix Agent e Tailscale para Linux
-# Versão 4.0 - Configuração modularizada com arquivo .env
+# Script de Implantação do Zabbix Agent e Tailscale para Windows
+# Versão 4.2 - Permite escolher o nome do host a ser registrado
 # =============================================================================
 
-# --- Função para carregar variáveis de ambiente do arquivo .env ---
-load_env() {
-    # Procura pelo .env no mesmo diretório do script
-    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-    if [ -f "$SCRIPT_DIR/.env" ]; then
-        export $(grep -v '^#' "$SCRIPT_DIR/.env" | xargs)
-    else
-        echo "[✗] ERRO: Arquivo .env não encontrado em '$SCRIPT_DIR'."
-        echo "Por favor, copie .env.example para .env e preencha os valores."
-        exit 1
-    fi
+# --- Função para carregar .env ---
+function Load-Env {
+    # ... (função continua a mesma) ...
 }
 
-# --- Funções de Interface ("Menuzinho") ---
-print_step() { echo "" && echo "--- $1 ---"; }
-print_success() { echo "[✓] $1"; }
-print_error() { echo "[✗] ERRO: $1"; exit 1; }
-
 # --- Início do Script ---
-clear
-load_env # Carrega as variáveis de .env
+Clear-Host
+Load-Env
 
-# O resto do script usa as variáveis carregadas ($TAILSCALE_AUTH_KEY, $ZABBIX_SERVER_IP)
-METADATA="Linux-Auto"
-HOSTNAME=$(hostname)
-CONF_FILE="/etc/zabbix/zabbix_agent2.conf"
+# --- Funções de Interface ---
+function Print-Step { param($message) Write-Host "" ; Write-Host "--- $message ---" -ForegroundColor Yellow }
+function Print-Success { param($message) Write-Host "[✓] $message" -ForegroundColor Green }
+function Print-Error { param($message) Write-Host "[✗] ERRO: $message" -ForegroundColor Red; Read-Host "Pressione Enter para sair"; exit 1 }
 
-# --- Verificação de Root ---
-if [ "$EUID" -ne 0 ]; then
-    print_error "Este script precisa ser executado como root. Use 'sudo'."
-fi
+# --- Pergunta pelo nome de host a ser usado ---
+Print-Step "Configuração do Nome de Host"
+$ZabbixHostname = Read-Host "Digite o nome de host único para Zabbix e Tailscale (ex: ClienteA-WebServer01)"
+if ([string]::IsNullOrWhiteSpace($ZabbixHostname)) {
+    Print-Error "O nome do host não pode ser vazio."
+}
+$ZabbixHostname = $ZabbixHostname -replace '[^a-zA-Z0-9_-]' # Remove caracteres especiais
+Print-Success "O host será registrado como: $ZabbixHostname"
 
-print_step "Iniciando implantação automatizada do Agente de Monitoramento"
+# --- Variáveis de Configuração ---
+$TailscaleAuthKey = $env:TAILSCALE_AUTH_KEY
+$ZabbixServerIP   = $env:ZABBIX_SERVER_IP
+$Metadata         = "Windows-Auto"
+$TempDir          = "C:\TempInstall"
 
-# 1. Detectar a Distribuição
-if [ -f /etc/debian_version ]; then
-    DISTRO="debian"
-    PKG_MANAGER="apt-get"
-elif [ -f /etc/redhat-release ]; then
-    DISTRO="rhel"
-    PKG_MANAGER="dnf"
-elif command -v pacman &> /dev/null; then
-    DISTRO="arch"
-    PKG_MANAGER="pacman"
-else
-    print_error "Distribuição Linux não suportada."
-fi
-print_success "Sistema operacional detectado: $DISTRO"
+# --- Verificação de Admin ---
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Print-Error "Este script precisa ser executado como Administrador."
+}
 
-# 2. Instalação do Tailscale
-print_step "Instalando Tailscale"
-if ! command -v tailscale &> /dev/null; then
-    if [ "$DISTRO" == "debian" ]; then
-        curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(. /etc/os-release && echo "$VERSION_CODENAME").noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
-        curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(. /etc/os-release && echo "$VERSION_CODENAME").tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
-        $PKG_MANAGER update && $PKG_MANAGER install tailscale -y
-    elif [ "$DISTRO" == "rhel" ]; then
-        $PKG_MANAGER config-manager --add-repo https://pkgs.tailscale.com/stable/centos/$(rpm -E %rhel)/tailscale.repo
-        $PKG_MANAGER install tailscale -y
-    elif [ "$DISTRO" == "arch" ]; then
-        $PKG_MANAGER -Syu --noconfirm tailscale
-    fi
-    print_success "Tailscale instalado."
-else
-    print_success "Tailscale já está instalado."
-fi
+# ... (o resto do script de instalação do Tailscale e Zabbix Agent continua o mesmo) ...
 
-# 3. Instalação do Zabbix Agent 2
-print_step "Instalando Zabbix Agent 2"
-if ! command -v zabbix_agent2 &> /dev/null; then
-    if [ "$DISTRO" == "debian" ]; then
-        wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_7.0-1+ubuntu$(. /etc/os-release && echo "$VERSION_ID")_all.deb -O /tmp/zabbix-release.deb
-        dpkg -i /tmp/zabbix-release.deb
-        $PKG_MANAGER update && $PKG_MANAGER install zabbix-agent2 -y
-    elif [ "$DISTRO" == "rhel" ]; then
-        rpm -Uvh https://repo.zabbix.com/zabbix/7.0/rhel/$(rpm -E %rhel)/x86_64/zabbix-release-7.0-1.el$(rpm -E %rhel).noarch.rpm
-        $PKG_MANAGER clean all && $PKG_MANAGER install zabbix-agent2 -y
-    elif [ "$DISTRO" == "arch" ]; then
-        $PKG_MANAGER -S --noconfirm zabbix-agent2
-    fi
-    print_success "Zabbix Agent 2 instalado."
-else
-    print_success "Zabbix Agent 2 já está instalado."
-fi
+# 2. Instalação do Zabbix Agent 2
+Print-Step "Verificando e instalando o Zabbix Agent 2"
+if (-not (Get-Service "Zabbix Agent 2" -ErrorAction SilentlyContinue)) {
+    try {
+        # ... (download continua o mesmo) ...
+        
+        # Usa a variável ZabbixHostname que foi digitada pelo usuário
+        $MsiArgs = @("/i", "`"$ZabbixInstaller`"", "/qn", "SERVER=$ZabbixServerIP", "SERVERACTIVE=$ZabbixServerIP", "HOSTNAME=$ZabbixHostname", "HOSTMETADATA=$Metadata", "ENABLEPATH=1")
+        
+        Write-Host "Instalando e configurando o Zabbix Agent 2 com o nome de host: $ZabbixHostname"
+        Start-Process -FilePath "msiexec.exe" -ArgumentList $MsiArgs -Wait
+        Print-Success "Zabbix Agent 2 instalado e configurado."
+    } catch { Print-Error "Falha ao baixar ou instalar o Zabbix Agent 2. $($_.Exception.Message)" }
+} else { Print-Success "Zabbix Agent 2 já está instalado." }
 
-# 4. Configurar Zabbix Agent
-print_step "Configurando Zabbix Agent para auto-registro"
-sed -i "s/^Server=127.0.0.1/Server=$ZABBIX_SERVER_IP/" "$CONF_FILE"
-sed -i "s/^ServerActive=127.0.0.1/ServerActive=$ZABBIX_SERVER_IP/" "$CONF_FILE"
-sed -i "s/^Hostname=Zabbix server/Hostname=$HOSTNAME/" "$CONF_FILE"
-sed -i "s/^# HostMetadata=/HostMetadata=$METADATA/" "$CONF_FILE"
-sed -i "s/^HostMetadata=.*/HostMetadata=$METADATA/" "$CONF_FILE"
-print_success "Arquivo de configuração do Zabbix atualizado."
+# 3. Iniciar Serviços
+Print-Step "Iniciando e configurando serviços de rede"
+try {
+    $tailscalePath = "$env:ProgramFiles\Tailscale\tailscale.exe"
+    if (-not (Test-Path $tailscalePath)) { Print-Error "Executável do Tailscale não foi encontrado." }
+    
+    Print-Success "Conectando à rede Tailscale automaticamente..."
+    # Usa o nome de host único também para o Tailscale
+    $upArgs = @("up", "--authkey", $TailscaleAuthKey, "--hostname", $ZabbixHostname, "--accept-routes")
+    Start-Process -FilePath $tailscalePath -ArgumentList $upArgs -Wait -NoNewWindow
+    
+    Print-Success "Tailscale e Zabbix Agent iniciados."
+} catch { Print-Error "Falha ao configurar o Tailscale. $($_.Exception.Message)" }
 
-# 5. Iniciar Serviços
-print_step "Iniciando e configurando serviços de rede"
-systemctl enable --now tailscaled
-systemctl enable --now zabbix-agent2
+# ... (o resto do script continua o mesmo) ...
 
-tailscale up --authkey="$TAILSCALE_AUTH_KEY" --hostname="$HOSTNAME-zabbix" --accept-routes
-print_success "Tailscale e Zabbix Agent iniciados."
-
-print_step "IMPLANTAÇÃO CONCLUÍDA"
-echo "O host '$HOSTNAME' deve aparecer automaticamente no seu Zabbix em alguns minutos."
+Print-Step "IMPLANTAÇÃO CONCLUÍDA"
+Write-Host "O host '$ZabbixHostname' deve aparecer automaticamente no seu Zabbix em alguns minutos."
