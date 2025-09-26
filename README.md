@@ -115,11 +115,37 @@ systemctl --user enable podman-restart.service
 ```
 
 #### 1.5 Configurar o Autorregistro no Zabbix
-Para que os hosts sejam adicionados automaticamente:
-1.  Acesse a interface do Zabbix (após a primeira inicialização).
-2.  Vá em **Administração** -> **Ações** -> **Ações de autorregistro**.
-3.  Crie duas ações separadas, uma para Linux e outra para Windows, usando os **Metadados do host** `Linux-Auto` e `Windows-Auto` como condição, respectivamente.
-4.  Em "Operações", configure cada ação para **Adicionar host**, **Adicionar ao grupo de hosts** apropriado e **Vincular ao template** correto (`Linux by Zabbix agent` ou `Windows by Zabbix agent`).
+
+Esta é uma configuração única, feita no servidor, para que novos hosts que usem seus scripts de implantação sejam adicionados e configurados automaticamente.
+
+1.  **Acesse a Interface do Zabbix** (ex: `http://SEU_HOSTNAME/zabbix`).
+
+2.  **Navegue até a Seção Correta:**
+    * No menu principal à esquerda, clique em **Alertas**.
+    * No submenu que abrir, clique em **Ações**.
+    * No topo da página, clique no menu suspenso (dropdown) que provavelmente diz "Ações de gatilho" e selecione **Ações de autorregistro**.
+
+3.  **Crie a Ação para Hosts Linux:**
+    * Clique no botão **Criar ação** no canto superior direito.
+    * **Aba `Ação`:**
+        * **Nome:** `Auto-registro de Agentes Linux`
+        * **Condições:** Adicione uma nova condição onde `Metadados do host` `contém` `Linux-Auto`.
+    * **Aba `Operações`:** Adicione as três operações a seguir:
+        1.  `Adicionar host`
+        2.  `Adicionar a grupos de hosts`: Selecione `Linux servers`.
+        3.  `Vincular a templates`: Selecione `Linux by Zabbix agent`.
+    * Clique em **Adicionar** para salvar.
+
+4.  **Crie a Ação para Hosts Windows:**
+    * Repita o processo acima para criar uma segunda ação.
+    * **Aba `Ação`:**
+        * **Nome:** `Auto-registro de Agentes Windows`
+        * **Condições:** Adicione uma nova condição onde `Metadados do host` `contém` `Windows-Auto`.
+    * **Aba `Operações`:** Adicione as três operações a seguir:
+        1.  `Adicionar host`
+        2.  `Adicionar a grupos de hosts`: Selecione `Windows servers`.
+        3.  `Vincular a templates`: Selecione `Windows by Zabbix agent`.
+    * Clique em **Adicionar** para salvar.
 
 #### 1.6 Iniciar o Stack
 ```bash
